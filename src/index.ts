@@ -1,19 +1,31 @@
-import * as http from "http";
+import {
+  createServer,
+  IncomingMessage,
+  ServerResponse,
+  Server as HttpServer
+} from "http";
 import Debug from "debug";
 import { BlobTreeInMem, BlobTree, WacLdp } from "wac-ldp";
 import * as WebSocket from "ws";
 import { Hub } from "./hub";
+
+import Koa from "koa";
+// import nodemailer from "nodemailer";
+import { defaultConfiguration } from "solid-idp";
+import { keystore } from "./keystore";
+import path from "path";
 
 const debug = Debug("server");
 
 export class Server {
   storage: BlobTree;
   wacLdp: WacLdp;
-  server: http.Server;
+  server: HttpServer;
   hub: Hub;
   port: number;
   wsServer: any;
   owner: URL | undefined;
+  idpHandler?: (req: IncomingMessage, res: ServerResponse) => void;
   constructor(port: number, aud: string, owner: URL | undefined) {
     this.port = port;
     this.storage = new BlobTreeInMem(); // singleton in-memory storage
@@ -26,7 +38,16 @@ export class Server {
       `localhost:${this.port}`,
       false
     );
-    this.server = http.createServer(this.wacLdp.handler.bind(this.wacLdp));
+
+    this.server = createServer((req: IncomingMessage, res: ServerResponse) => {
+      if (req.url.startsWith("/storage")) {
+        return this.wacLdp.handler(req, res);
+      }
+      if (req.url.startsWith("/idp")) {
+        return this.idpHandler(req, res);
+      }
+      res.end("statics!");
+    });
     this.wsServer = new WebSocket.Server({
       server: this.server
     });
@@ -39,6 +60,38 @@ export class Server {
     });
   }
   async listen() {
+    // const testAccount = await nodemailer.createTestAccount()
+    const idpRouter = await defaultConfiguration({
+      issuer: "http://localhost:3000/",
+      pathPrefix: "",
+      keystore,
+      mailConfiguration:
+        process.env.EMAIL_USER && process.env.EMAIL_PASS
+          ? {
+              service: "gmail",
+              auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS
+              }
+            }
+          : undefined,
+      webIdFromUsername: async (username: string) => {
+        return `https://${username}.api.swype.io/profile/card#me`;
+      },
+      onNewUser: async (username: string) => {
+        return `https://${username}.api.swype.io/profile/card#me`;
+      },
+      storagePreset: "filesystem",
+      storageData: {
+        redisUrl: process.env.REDIS_URL || "",
+        folder: path.join(__dirname, "./.db")
+      }
+    });
+    const app = new Koa();
+    app.use(idpRouter.routes());
+    app.use(idpRouter.allowedMethods());
+    this.idpHandler = app.callback();
+
     if (this.owner) {
       // FIXME: don't hard-code "http://server" here; use the `aud: string` arg from the constructor, maybe?
       await this.wacLdp.setRootAcl(
