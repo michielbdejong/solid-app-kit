@@ -79,7 +79,3 @@ export function closeServer() {
   debug("closing server");
   server.close();
 }
-
-export function HelloWorld(): string {
-  return "hello, world";
-}
