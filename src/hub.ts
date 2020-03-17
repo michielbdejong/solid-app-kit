@@ -7,7 +7,7 @@ import {
   determineWebIdAndOrigin,
   ACL,
   BEARER_PARAM_NAME
-} from "./exports";
+} from "wac-ldp";
 
 const debug = Debug("hub");
 

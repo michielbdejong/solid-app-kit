@@ -13,6 +13,7 @@
     "jest": "jest",
     "lint": "eslint src/ test/ --ext .ts",
     "prettier": "prettier --write \"{src,test,__mocks__}/**/*.ts\"",
+    "start": "node lib",
     "test": "npm run build && npm run lint && npm run jest"
   },
   "repository": {
