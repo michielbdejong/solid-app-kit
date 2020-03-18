@@ -1,6 +1,6 @@
 {
   "name": "solid-app-kit",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "A server that includes both a pod server and an app",
   "files": [
     "src",
