@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
-import { Server } from "..";
+import { Server } from ".";
 import Debug from "debug";
 
-const debug = Debug("basic example");
+const debug = Debug("Solid App Kit");
 
 const appFolder = process.argv[2];
 console.log("Serving app from ", appFolder);
