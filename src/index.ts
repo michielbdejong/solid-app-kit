@@ -9,12 +9,12 @@ import { BlobTreeInMem, BlobTree, WacLdp } from "wac-ldp";
 import { Server as WebSocketServer } from "ws";
 import { Hub } from "./hub";
 
-import * as Koa from "koa";
-import * as koaStatic from "koa-static";
+import Koa from "koa";
+import koaStatic from "koa-static";
 // import nodemailer from "nodemailer";
 import { defaultConfiguration } from "solid-idp";
 import { keystore } from "./keystore";
-import * as path from "path";
+import path from "path";
 
 const debug = Debug("server");
 
