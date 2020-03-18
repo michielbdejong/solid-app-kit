@@ -6,7 +6,7 @@ import {
 } from "http";
 import Debug from "debug";
 import { BlobTreeInMem, BlobTree, WacLdp } from "wac-ldp";
-import * as WebSocket from "ws";
+import { Server as WebSocketServer } from "ws";
 import { Hub } from "./hub";
 
 import Koa from "koa";
@@ -24,17 +24,18 @@ export class Server {
   server: HttpServer;
   hub: Hub;
   port: number;
-  wsServer: any;
-  owner: URL | undefined;
+  wsServer: WebSocketServer;
   idpHandler?: (req: IncomingMessage, res: ServerResponse) => void;
   staticsHandler: (req: IncomingMessage, res: ServerResponse) => void;
-  constructor(port: number, aud: string, owner: URL | undefined, staticsPath) {
+  publicUrl: URL;
+  constructor(port: number, publicUrl: URL, staticsPath: string) {
     this.port = port;
+    this.publicUrl = publicUrl;
     this.storage = new BlobTreeInMem(); // singleton in-memory storage
-    const skipWac = owner === undefined;
+    const skipWac = false;
     this.wacLdp = new WacLdp(
       this.storage,
-      aud,
+      publicUrl.toString(),
       new URL(`ws://localhost:${this.port}/`),
       skipWac,
       `localhost:${this.port}`,
@@ -57,18 +58,25 @@ export class Server {
       }
       return this.staticsHandler(req, res);
     });
-    this.wsServer = new WebSocket.Server({
+    this.wsServer = new WebSocketServer({
       server: this.server
     });
-    this.hub = new Hub(this.wacLdp, aud);
-    this.owner = owner;
+    this.hub = new Hub(this.wacLdp, publicUrl.toString());
     this.wsServer.on("connection", this.hub.handleConnection.bind(this.hub));
     this.wacLdp.on("change", (event: { url: URL }) => {
       debug("change event from this.wacLdp!", event.url);
       this.hub.publishChange(event.url);
     });
   }
-  async listen() {
+
+  podRootFromUserName(username: string): URL {
+    const sanitizedUsername = username.replace(/\W/g, "");
+    return new URL(`/storage/${sanitizedUsername}/`, this.publicUrl);
+  }
+  webIdFromPodRoot(podRoot: URL): URL {
+    return new URL("./profile/card#me", podRoot);
+  }
+  async listen(): Promise<void> {
     // const testAccount = await nodemailer.createTestAccount()
     const idpRouter = await defaultConfiguration({
       issuer: "http://localhost:3000/",
@@ -84,11 +92,39 @@ export class Server {
               }
             }
           : undefined,
-      webIdFromUsername: async (username: string) => {
-        return `https://${username}.api.swype.io/profile/card#me`;
+      webIdFromUsername: async (username: string): Promise<string> => {
+        return this.webIdFromPodRoot(
+          this.podRootFromUserName(username)
+        ).toString();
       },
-      onNewUser: async (username: string) => {
-        return `https://${username}.api.swype.io/profile/card#me`;
+      onNewUser: async (username: string): Promise<string> => {
+        const podRoot = this.podRootFromUserName(username);
+        const webId = this.webIdFromPodRoot(podRoot);
+        await this.wacLdp.setRootAcl(podRoot, webId);
+
+        // Make profile folder world-readable
+        // make sure this.webIdFromPodRoot(podRoot) falls in here
+        await this.wacLdp.setPublicAcl(
+          new URL("./profile/", podRoot),
+          webId,
+          "Read"
+        );
+
+        // Make public folder world-readable
+        await this.wacLdp.setPublicAcl(
+          new URL("./public/", podRoot),
+          webId,
+          "Read"
+        );
+
+        // Make global inbox world-appendable
+        await this.wacLdp.setPublicAcl(
+          new URL("./inbox/", podRoot),
+          webId,
+          "Append"
+        );
+
+        return webId.toString();
       },
       storagePreset: "filesystem",
       storageData: {
@@ -101,24 +137,12 @@ export class Server {
     idpApp.use(idpRouter.allowedMethods());
     this.idpHandler = idpApp.callback();
 
-    if (this.owner) {
-      // FIXME: don't hard-code "http://server" here; use the `aud: string` arg from the constructor, maybe?
-      await this.wacLdp.setRootAcl(
-        new URL(`http://server:${this.port}/`),
-        this.owner
-      );
-      await this.wacLdp.setPublicAcl(
-        new URL(`http://server:${this.port}/public/`),
-        this.owner,
-        "Read"
-      );
-    }
-    await this.server.listen(this.port);
+    this.server.listen(this.port);
     debug("listening on port", this.port);
   }
-  async close() {
-    await this.server.close();
-    await this.wsServer.close();
+  async close(): Promise<void> {
+    this.server.close();
+    this.wsServer.close();
     debug("closing port", this.port);
   }
 }

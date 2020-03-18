@@ -15,7 +15,7 @@ const BEARER_PREFIX = "Bearer ";
 const SUBSCRIBE_COMMAND_PREFIX = "sub ";
 
 interface Client {
-  webSocket: any;
+  webSocket: WebSocket;
   webIdPromise: Promise<URL>;
   origin: string;
   subscriptions: Array<URL>;
@@ -27,7 +27,7 @@ function getOrigin(headers: http.IncomingHttpHeaders): string | undefined {
   }
   return headers.origin;
 }
-function hasPrefix(longString: string, shortString: string) {
+function hasPrefix(longString: string, shortString: string): boolean {
   const length = shortString.length;
   if (longString.length < length) {
     return false;
@@ -45,7 +45,7 @@ export class Hub {
     this.audience = audience;
   }
   async handleConnection(
-    ws: any,
+    ws: WebSocket,
     upgradeRequest: http.IncomingMessage
   ): Promise<void> {
     const newClient = {
@@ -54,7 +54,8 @@ export class Hub {
       origin: getOrigin(upgradeRequest.headers),
       subscriptions: []
     } as Client;
-    ws.on("message", function incoming(message: string): void {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (ws as any).on("message", function(message: string): void {
       debug("received: %s", message);
       if (
         message.substring(0, SUBSCRIBE_COMMAND_PREFIX.length) ===
@@ -139,7 +140,7 @@ export class Hub {
     }
   }
 
-  publishChange(url: URL) {
+  publishChange(url: URL): void {
     debug("publishChange", url);
     this.clients.map(async client => {
       debug("publishChange client", url, client.subscriptions);

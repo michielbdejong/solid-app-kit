@@ -12,7 +12,7 @@
     "coverage": "jest --collect-coverage",
     "jest": "jest",
     "lint": "eslint src/ test/ --ext .ts",
-    "postversion": "git push && git push --tags",
+    "postversion": "git push && git push --tags && npm publish",
     "prettier": "prettier --write \"{src,test,__mocks__}/**/*.ts\"",
     "preversion": "npm test",
     "start": "node lib/examples/basic",
