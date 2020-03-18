@@ -9,12 +9,12 @@ import { BlobTreeInMem, BlobTree, WacLdp } from "wac-ldp";
 import { Server as WebSocketServer } from "ws";
 import { Hub } from "./hub";
 
-import Koa from "koa";
-import koaStatic from "koa-static";
+import * as Koa from "koa";
+import * as koaStatic from "koa-static";
 // import nodemailer from "nodemailer";
 import { defaultConfiguration } from "solid-idp";
 import { keystore } from "./keystore";
-import path from "path";
+import * as path from "path";
 
 const debug = Debug("server");
 
@@ -27,10 +27,17 @@ export class Server {
   wsServer: WebSocketServer;
   idpHandler?: (req: IncomingMessage, res: ServerResponse) => void;
   staticsHandler: (req: IncomingMessage, res: ServerResponse) => void;
+  userDbPath: string;
   publicUrl: URL;
-  constructor(port: number, publicUrl: URL, staticsPath: string) {
+  constructor(
+    port: number,
+    publicUrl: URL,
+    staticsPath: string,
+    userDbPath: string
+  ) {
     this.port = port;
     this.publicUrl = publicUrl;
+    this.userDbPath = userDbPath;
     this.storage = new BlobTreeInMem(); // singleton in-memory storage
     const skipWac = false;
     this.wacLdp = new WacLdp(
@@ -51,6 +58,9 @@ export class Server {
       }
       if (
         req.url.startsWith("/.well-known") ||
+        req.url.startsWith("/certs") ||
+        req.url.startsWith("/reg") ||
+        req.url.startsWith("/auth") ||
         req.url.startsWith("/interaction") ||
         req.url.startsWith("/resetpassword")
       ) {
@@ -79,7 +89,7 @@ export class Server {
   async listen(): Promise<void> {
     // const testAccount = await nodemailer.createTestAccount()
     const idpRouter = await defaultConfiguration({
-      issuer: "http://localhost:3000/",
+      issuer: `http://localhost:${this.port}/`,
       pathPrefix: "",
       keystore,
       mailConfiguration:
@@ -128,8 +138,7 @@ export class Server {
       },
       storagePreset: "filesystem",
       storageData: {
-        redisUrl: process.env.REDIS_URL || "",
-        folder: path.join(__dirname, "./.db")
+        folder: path.join(__dirname, this.userDbPath)
       }
     });
     const idpApp = new Koa();

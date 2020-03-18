@@ -1,0 +1,55 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Solid App</title>
+  </head>
+  <body>
+    <div id="loginBanner"></div>
+    <div id="ui" style="display:none">
+      (UI goes here...)
+    </div>
+  </body>
+  <script src="./solid-auth-client.bundle.js"></script>
+  <script>
+    window.onload = () => {
+      console.log("document ready");
+      solid.auth.trackSession(session => {
+        if (!session) {
+          console.log("The user is not logged in");
+          document.getElementById("loginBanner").innerHTML =
+            `<button onclick="solid.auth.login(window.location.toString())">Log in local (use alice / ABC123xyz)</button>` +
+            `<button onclick="popupLogin()">Log in (other Solid nodes)</button>`;
+          document.getElementById("ui").style.display = "none";
+        } else {
+          console.log(`Logged in as ${session.webId}`);
+
+          document.getElementById(
+            "loginBanner"
+          ).innerHTML = `Logged in as ${session.webId} <button onclick="solid.auth.logout()">Log out</button>`;
+          document.getElementById("ui").style.display = "block";
+        }
+      });
+    };
+    async function popupLogin() {
+      let session = await solid.auth.currentSession();
+      let popupUri = "https://solid.community/common/popup.html";
+      if (!session) {
+        session = await solid.auth.popupLogin({ popupUri });
+      }
+    }
+
+    const KEY_PREFIX = "resource=";
+    if (window.location.hash.length > 2) {
+      pairs = window.location.hash.substring(1).split("&");
+      pairs.map(pair => {
+        console.log(pair, pair.substring(0, KEY_PREFIX.length), KEY_PREFIX);
+        if (pair.substring(0, KEY_PREFIX.length) === KEY_PREFIX) {
+          console.log(pair.substring(KEY_PREFIX.length));
+          console.log("resource opened", pair.substring(KEY_PREFIX.length));
+          // const response = await solid.auth.fetch(url);
+          // const wssUrl = response.headers.get('Updates-Via')
+        }
+      });
+    }
+  </script>
+</html>

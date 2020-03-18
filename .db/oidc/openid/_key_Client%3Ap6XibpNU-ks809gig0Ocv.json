@@ -1,0 +1,19 @@
+{
+  "payload": {
+    "application_type": "web",
+    "grant_types": ["implicit"],
+    "id_token_signed_response_alg": "RS256",
+    "post_logout_redirect_uris": [],
+    "require_auth_time": false,
+    "response_types": ["id_token token"],
+    "subject_type": "public",
+    "token_endpoint_auth_method": "client_secret_basic",
+    "request_uris": [],
+    "client_id_issued_at": 1584535266,
+    "client_id": "p6XibpNU-ks809gig0Ocv",
+    "client_secret_expires_at": 0,
+    "client_secret": "o4iZ9pqnVfDmha0pl5rbcmLUrBPcBhguw7DouBdp9LfoSyw5m8ynPgAw6sb-4YzDTvnYyfEUILKdzKWA5Ynb6Q",
+    "redirect_uris": ["http://localhost:8080/"],
+    "scope": "openid profile"
+  }
+}

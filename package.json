@@ -10,6 +10,7 @@
   "scripts": {
     "build": "babel src -d lib --source-maps --extensions \".ts\"",
     "coverage": "jest --collect-coverage",
+    "dev": "ts-node-dev src/examples/basic",
     "jest": "jest",
     "lint": "eslint src/ test/ --ext .ts",
     "postversion": "git push && git push --tags && npm publish",
@@ -48,6 +49,7 @@
     "jest": "^25.1.0",
     "prettier": "^1.19.1",
     "pretty-quick": "^2.0.1",
+    "ts-node-dev": "^1.0.0-pre.44",
     "typescript": "^3.8.3"
   },
   "husky": {
