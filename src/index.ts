@@ -27,8 +27,8 @@ export class Server {
   wsServer: any;
   owner: URL | undefined;
   idpHandler?: (req: IncomingMessage, res: ServerResponse) => void;
-  staticsHandler?: (req: IncomingMessage, res: ServerResponse) => void;
-  constructor(port: number, aud: string, owner: URL | undefined) {
+  staticsHandler: (req: IncomingMessage, res: ServerResponse) => void;
+  constructor(port: number, aud: string, owner: URL | undefined, staticsPath) {
     this.port = port;
     this.storage = new BlobTreeInMem(); // singleton in-memory storage
     const skipWac = owner === undefined;
@@ -40,6 +40,9 @@ export class Server {
       `localhost:${this.port}`,
       false
     );
+    const staticsApp = new Koa();
+    staticsApp.use(koaStatic(staticsPath, {}));
+    this.staticsHandler = staticsApp.callback();
 
     this.server = createServer((req: IncomingMessage, res: ServerResponse) => {
       if (req.url.startsWith("/storage")) {
@@ -98,10 +101,6 @@ export class Server {
     idpApp.use(idpRouter.allowedMethods());
     this.idpHandler = idpApp.callback();
 
-    const staticsApp = new Koa();
-    staticsApp.use(koaStatic(".", {}));
-    this.staticsHandler = staticsApp.callback();
-
     if (this.owner) {
       // FIXME: don't hard-code "http://server" here; use the `aud: string` arg from the constructor, maybe?
       await this.wacLdp.setRootAcl(
@@ -114,12 +113,12 @@ export class Server {
         "Read"
       );
     }
-    this.server.listen(this.port);
+    await this.server.listen(this.port);
     debug("listening on port", this.port);
   }
-  close() {
-    this.server.close();
-    this.wsServer.close();
+  async close() {
+    await this.server.close();
+    await this.wsServer.close();
     debug("closing port", this.port);
   }
 }
