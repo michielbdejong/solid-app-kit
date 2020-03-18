@@ -6,7 +6,7 @@ import Debug from "debug";
 const debug = Debug("Solid App Kit");
 
 const appFolder = process.argv[2];
-console.log("Serving app from ", appFolder);
+console.log(`Serving app from ${appFolder} on http://localhost:8080`);
 
 // on startup:
 const server = new Server(
