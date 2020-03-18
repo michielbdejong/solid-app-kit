@@ -16,9 +16,9 @@
       solid.auth.trackSession(session => {
         if (!session) {
           console.log("The user is not logged in");
-          document.getElementById("loginBanner").innerHTML =
-            `<button onclick="solid.auth.login(window.location.toString())">Log in local (use alice / ABC123xyz)</button>` +
-            `<button onclick="popupLogin()">Log in (other Solid nodes)</button>`;
+          document.getElementById(
+            "loginBanner"
+          ).innerHTML = `<button onclick="solid.auth.login(window.location.toString())">Log in or register</button>`;
           document.getElementById("ui").style.display = "none";
         } else {
           console.log(`Logged in as ${session.webId}`);
