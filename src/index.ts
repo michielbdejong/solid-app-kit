@@ -10,6 +10,7 @@ import * as WebSocket from "ws";
 import { Hub } from "./hub";
 
 import Koa from "koa";
+import koaStatic from "koa-static";
 // import nodemailer from "nodemailer";
 import { defaultConfiguration } from "solid-idp";
 import { keystore } from "./keystore";
@@ -26,6 +27,7 @@ export class Server {
   wsServer: any;
   owner: URL | undefined;
   idpHandler?: (req: IncomingMessage, res: ServerResponse) => void;
+  staticsHandler?: (req: IncomingMessage, res: ServerResponse) => void;
   constructor(port: number, aud: string, owner: URL | undefined) {
     this.port = port;
     this.storage = new BlobTreeInMem(); // singleton in-memory storage
@@ -43,10 +45,14 @@ export class Server {
       if (req.url.startsWith("/storage")) {
         return this.wacLdp.handler(req, res);
       }
-      if (req.url.startsWith("/idp")) {
+      if (
+        req.url.startsWith("/.well-known") ||
+        req.url.startsWith("/interaction") ||
+        req.url.startsWith("/resetpassword")
+      ) {
         return this.idpHandler(req, res);
       }
-      res.end("statics!");
+      return this.staticsHandler(req, res);
     });
     this.wsServer = new WebSocket.Server({
       server: this.server
@@ -87,10 +93,14 @@ export class Server {
         folder: path.join(__dirname, "./.db")
       }
     });
-    const app = new Koa();
-    app.use(idpRouter.routes());
-    app.use(idpRouter.allowedMethods());
-    this.idpHandler = app.callback();
+    const idpApp = new Koa();
+    idpApp.use(idpRouter.routes());
+    idpApp.use(idpRouter.allowedMethods());
+    this.idpHandler = idpApp.callback();
+
+    const staticsApp = new Koa();
+    staticsApp.use(koaStatic(".", {}));
+    this.staticsHandler = staticsApp.callback();
 
     if (this.owner) {
       // FIXME: don't hard-code "http://server" here; use the `aud: string` arg from the constructor, maybe?
@@ -112,23 +122,4 @@ export class Server {
     this.wsServer.close();
     debug("closing port", this.port);
   }
-}
-
-// on startup:
-const port = parseInt(process.env.PORT ? process.env.PORT : "", 10) || 8080;
-
-const aud = process.env.AUD || "https://localhost:8443";
-const server = new Server(
-  port,
-  aud,
-  process.env.SKIP_WAC
-    ? undefined
-    : new URL("https://alice.idp.test.solidproject.org/profile/card#me")
-);
-server.listen().catch(console.error.bind(console));
-// server.close()
-
-export function closeServer() {
-  debug("closing server");
-  server.close();
 }

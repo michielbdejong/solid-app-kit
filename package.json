@@ -57,6 +57,7 @@
   },
   "dependencies": {
     "koa": "^2.11.0",
+    "koa-static": "^5.0.0",
     "nodemailer": "^6.4.5",
     "path": "^0.12.7",
     "solid-idp": "^0.1.6-build2",
