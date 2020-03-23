@@ -1,9 +1,5 @@
-import {
-  createServer,
-  IncomingMessage,
-  ServerResponse,
-  Server as HttpServer
-} from "http";
+import { createServer, Server as HttpsServer } from "https";
+import { IncomingMessage, ServerResponse } from "http";
 import Debug from "debug";
 import { BlobTreeInMem, BlobTree, WacLdp } from "wac-ldp";
 import { Server as WebSocketServer } from "ws";
@@ -18,60 +14,65 @@ import path from "path";
 
 const debug = Debug("server");
 
+export type ConstructorOptions = {
+  port: number;
+  publicUrl: URL;
+  cert: {
+    key: Buffer;
+    cert: Buffer;
+  };
+  appFolder: string;
+  dbFolder: string;
+};
+
 export class Server {
   storage: BlobTree;
   wacLdp: WacLdp;
-  server: HttpServer;
+  server: HttpsServer;
   hub: Hub;
-  port: number;
   wsServer: WebSocketServer;
   idpHandler?: (req: IncomingMessage, res: ServerResponse) => void;
   staticsHandler: (req: IncomingMessage, res: ServerResponse) => void;
-  userDbPath: string;
-  publicUrl: URL;
-  constructor(
-    port: number,
-    publicUrl: URL,
-    staticsPath: string,
-    userDbPath: string
-  ) {
-    this.port = port;
-    this.publicUrl = publicUrl;
-    this.userDbPath = userDbPath;
+  options: ConstructorOptions;
+  constructor(options: ConstructorOptions) {
+    this.options = options;
     this.storage = new BlobTreeInMem(); // singleton in-memory storage
     const skipWac = false;
     this.wacLdp = new WacLdp(
       this.storage,
-      publicUrl.toString(),
-      new URL(`ws://localhost:${this.port}/`),
+      options.publicUrl.toString(),
+      new URL(`ws://localhost:${this.options.port}/`),
       skipWac,
-      `localhost:${this.port}`,
+      `localhost:${this.options.port}`,
       false
     );
     const staticsApp = new Koa();
-    staticsApp.use(koaStatic(staticsPath, {}));
+    staticsApp.use(koaStatic(options.appFolder, {}));
     this.staticsHandler = staticsApp.callback();
 
-    this.server = createServer((req: IncomingMessage, res: ServerResponse) => {
-      if (req.url.startsWith("/storage")) {
-        return this.wacLdp.handler(req, res);
+    this.server = createServer(
+      options.cert,
+      (req: IncomingMessage, res: ServerResponse) => {
+        if (req.url.startsWith("/storage")) {
+          return this.wacLdp.handler(req, res);
+        }
+        if (
+          req.url.startsWith("/.well-known") ||
+          req.url.startsWith("/certs") ||
+          req.url.startsWith("/reg") ||
+          req.url.startsWith("/auth") ||
+          req.url.startsWith("/interaction") ||
+          req.url.startsWith("/resetpassword")
+        ) {
+          return this.idpHandler(req, res);
+        }
+        return this.staticsHandler(req, res);
       }
-      if (
-        req.url.startsWith("/.well-known") ||
-        req.url.startsWith("/certs") ||
-        req.url.startsWith("/reg") ||
-        req.url.startsWith("/auth") ||
-        req.url.startsWith("/interaction") ||
-        req.url.startsWith("/resetpassword")
-      ) {
-        return this.idpHandler(req, res);
-      }
-      return this.staticsHandler(req, res);
-    });
+    );
     this.wsServer = new WebSocketServer({
       server: this.server
     });
-    this.hub = new Hub(this.wacLdp, publicUrl.toString());
+    this.hub = new Hub(this.wacLdp, this.options.publicUrl.toString());
     this.wsServer.on("connection", this.hub.handleConnection.bind(this.hub));
     this.wacLdp.on("change", (event: { url: URL }) => {
       debug("change event from this.wacLdp!", event.url);
@@ -81,7 +82,7 @@ export class Server {
 
   podRootFromUserName(username: string): URL {
     const sanitizedUsername = username.replace(/\W/g, "");
-    return new URL(`/storage/${sanitizedUsername}/`, this.publicUrl);
+    return new URL(`/storage/${sanitizedUsername}/`, this.options.publicUrl);
   }
   webIdFromPodRoot(podRoot: URL): URL {
     return new URL("./profile/card#me", podRoot);
@@ -89,7 +90,7 @@ export class Server {
   async listen(): Promise<void> {
     // const testAccount = await nodemailer.createTestAccount()
     const idpRouter = await defaultConfiguration({
-      issuer: `http://localhost:${this.port}/`,
+      issuer: `https://localhost:${this.options.port}/`,
       pathPrefix: "",
       keystore,
       mailConfiguration:
@@ -138,7 +139,7 @@ export class Server {
       },
       storagePreset: "filesystem",
       storageData: {
-        folder: path.join(__dirname, this.userDbPath)
+        folder: path.join(__dirname, this.options.dbFolder)
       }
     });
     const idpApp = new Koa();
@@ -146,12 +147,12 @@ export class Server {
     idpApp.use(idpRouter.allowedMethods());
     this.idpHandler = idpApp.callback();
 
-    this.server.listen(this.port);
-    debug("listening on port", this.port);
+    this.server.listen(this.options.port);
+    debug("listening on port", this.options.port);
   }
   async close(): Promise<void> {
     this.server.close();
     this.wsServer.close();
-    debug("closing port", this.port);
+    debug("closing port", this.options.port);
   }
 }
