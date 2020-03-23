@@ -7,12 +7,12 @@ import Debug from "debug";
 const debug = Debug("Solid App Kit");
 
 const appFolder = process.argv[2];
-console.log(`Serving app from ${appFolder} on https://localhost:8080`);
+console.log(`Serving app from ${appFolder} on https://lolcathost.de/`);
 
 // on startup:
 const server = new Server({
-  port: 8080,
-  publicUrl: new URL("https://localhost:8080"), // audience for WebId-OIDC bearer tokens
+  port: 443,
+  publicUrl: new URL("https://lolcathost.de/"), // audience for WebId-OIDC bearer tokens
   cert: {
     key: readFileSync("server.key"),
     cert: readFileSync("server.cert")
