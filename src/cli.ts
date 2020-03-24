@@ -11,8 +11,8 @@ console.log(`Serving app from ${appFolder} on https://lolcathost.de/`);
 
 // on startup:
 const server = new Server({
-  port: 443,
-  publicUrl: new URL("https://lolcathost.de/"), // audience for WebId-OIDC bearer tokens
+  httpsPort: 443,
+  httpsDomain: "lolcathost.de",
   cert: {
     key: readFileSync("server.key"),
     cert: readFileSync("server.cert")

@@ -15,8 +15,8 @@ import path from "path";
 const debug = Debug("server");
 
 export type ConstructorOptions = {
-  port: number;
-  publicUrl: URL;
+  httpsPort?: number;
+  httpsDomain: string;
   cert: {
     key: Buffer;
     cert: Buffer;
@@ -34,17 +34,24 @@ export class Server {
   idpHandler?: (req: IncomingMessage, res: ServerResponse) => void;
   staticsHandler: (req: IncomingMessage, res: ServerResponse) => void;
   options: ConstructorOptions;
+  host: string;
   constructor(options: ConstructorOptions) {
     this.options = options;
     this.storage = new BlobTreeInMem(); // singleton in-memory storage
+    let portSuffix = ""; // default to port 443
+    if (options.httpsPort && options.httpsPort !== 443) {
+      portSuffix = `:${options.httpsPort}`;
+    }
+    this.host = `https://${options.httpsDomain}${portSuffix}`;
+    const webSocketUrl = new URL(`wss://${options.httpsDomain}${portSuffix}/`);
     const skipWac = false;
     this.wacLdp = new WacLdp(
       this.storage,
-      options.publicUrl.toString(),
-      new URL(`ws://localhost:${this.options.port}/`),
+      `${this.host}/`,
+      webSocketUrl,
       skipWac,
-      `localhost:${this.options.port}`,
-      false
+      this.host,
+      true
     );
     const staticsApp = new Koa();
     staticsApp.use(koaStatic(options.appFolder, {}));
@@ -72,7 +79,7 @@ export class Server {
     this.wsServer = new WebSocketServer({
       server: this.server
     });
-    this.hub = new Hub(this.wacLdp, this.options.publicUrl.toString());
+    this.hub = new Hub(this.wacLdp, `${this.host}/`);
     this.wsServer.on("connection", this.hub.handleConnection.bind(this.hub));
     this.wacLdp.on("change", (event: { url: URL }) => {
       debug("change event from this.wacLdp!", event.url);
@@ -82,7 +89,7 @@ export class Server {
 
   podRootFromUserName(username: string): URL {
     const sanitizedUsername = username.replace(/\W/g, "");
-    return new URL(`/storage/${sanitizedUsername}/`, this.options.publicUrl);
+    return new URL(`/storage/${sanitizedUsername}/`, this.host);
   }
   webIdFromPodRoot(podRoot: URL): URL {
     return new URL("./profile/card#me", podRoot);
@@ -90,7 +97,7 @@ export class Server {
   async listen(): Promise<void> {
     // const testAccount = await nodemailer.createTestAccount()
     const idpRouter = await defaultConfiguration({
-      issuer: `https://localhost:${this.options.port}/`,
+      issuer: this.host,
       pathPrefix: "",
       keystore,
       mailConfiguration:
@@ -147,12 +154,12 @@ export class Server {
     idpApp.use(idpRouter.allowedMethods());
     this.idpHandler = idpApp.callback();
 
-    this.server.listen(this.options.port);
-    debug("listening on port", this.options.port);
+    this.server.listen(this.options.httpsPort);
+    debug("listening on port", this.options.httpsPort);
   }
   async close(): Promise<void> {
     this.server.close();
     this.wsServer.close();
-    debug("closing port", this.options.port);
+    debug("closing port", this.options.httpsPort);
   }
 }
