@@ -120,6 +120,24 @@ export class Server {
         const webId = this.webIdFromPodRoot(podRoot);
         await this.wacLdp.setRootAcl(podRoot, webId);
 
+        // Create profile document at
+        // this.webIdFromPodRoot(podRoot)
+        await this.wacLdp.createLocalDocument(
+          this.webIdFromPodRoot(podRoot),
+          "text/turtle",
+          `@prefix schema: <http://schema.org/>.
+<#me> a schema:Person.`
+          // No need to make same origin a trusted app,
+          // see also https://github.com/michielbdejong/wac-ldp/issues/1
+          // @prefix schema: <http://schema.org/>.
+          // @prefix acl: <http://www.w3.org/ns/auth/acl#>.
+          // <#thisOrigin>
+          //   acl:mode acl:Read, acl:Write, acl:Control;
+          //   acl:origin <${this.host}>.
+          // <#me> a schema:Person;
+          //   acl:trustedApp <#thisOrigin>.`
+        );
+
         // Make profile folder world-readable
         // make sure this.webIdFromPodRoot(podRoot) falls in here
         await this.wacLdp.setPublicAcl(
