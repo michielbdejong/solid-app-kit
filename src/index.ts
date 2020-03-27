@@ -1,8 +1,9 @@
 import { createServer, Server as HttpsServer } from "https";
 import { IncomingMessage, ServerResponse } from "http";
 import Debug from "debug";
-import { BlobTreeInMem, BlobTree, WacLdp } from "wac-ldp";
+import { BlobTree, WacLdp } from "wac-ldp";
 import { Server as WebSocketServer } from "ws";
+import { BlobTreeRedis } from "./BlobTreeRedis";
 import { Hub } from "./hub";
 
 import Koa from "koa";
@@ -37,7 +38,7 @@ export class Server {
   host: string;
   constructor(options: ConstructorOptions) {
     this.options = options;
-    this.storage = new BlobTreeInMem(); // singleton in-memory storage
+    this.storage = new BlobTreeRedis(); // singleton in-memory storage
     let portSuffix = ""; // default to port 443
     if (options.httpsPort && options.httpsPort !== 443) {
       portSuffix = `:${options.httpsPort}`;
@@ -162,9 +163,10 @@ export class Server {
 
         return webId.toString();
       },
-      storagePreset: "filesystem",
+      storagePreset: "redis", // or "filesystem",
       storageData: {
-        folder: path.join(__dirname, this.options.dbFolder)
+        redisUrl: "", // used if storagePreset is "redis"
+        folder: path.join(__dirname, this.options.dbFolder) // used if storagePreset is "filesystem"
       }
     });
     const idpApp = new Koa();
