@@ -5,7 +5,7 @@ import { BlobTree, WacLdp } from "wac-ldp";
 import { Server as WebSocketServer } from "ws";
 import { BlobTreeRedis } from "./BlobTreeRedis";
 import { Hub } from "./hub";
-
+import koaSend from "koa-send";
 import Koa from "koa";
 import koaStatic from "koa-static";
 // import nodemailer from "nodemailer";
@@ -56,6 +56,11 @@ export class Server {
     );
     const staticsApp = new Koa();
     staticsApp.use(koaStatic(options.appFolder, {}));
+    staticsApp.use(async ctx => {
+      if (ctx.status === 404) {
+        await koaSend(ctx, "index.html", { root: options.appFolder });
+      }
+    });
     this.staticsHandler = staticsApp.callback();
 
     this.server = createServer(
