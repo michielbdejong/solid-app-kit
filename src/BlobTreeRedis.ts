@@ -60,7 +60,6 @@ class BlobRedis implements Blob {
   async getData(): Promise<ReadableStream | undefined> {
     await this.checkWatch();
     const ret = await this.client.get(this.path.toString());
-    console.log("redis ret is", ret);
     if (ret) {
       return bufferToStream(Buffer.from(ret));
     }
@@ -124,11 +123,13 @@ class ContainerRedis implements Container {
     const membersObj: { [field: string]: string } = await this.client.hgetall(
       this.path.toString()
     );
+    const prefixLength = this.path.toString().length;
     const members = [];
-    for (const k in membersObj) {
+    for (const absPath in membersObj) {
+      const relPath = absPath.substring(prefixLength);
       members.push({
-        name: k,
-        isContainer: membersObj[k] === "true"
+        name: relPath,
+        isContainer: membersObj[absPath] === "true"
       } as Member);
     }
     return members;
