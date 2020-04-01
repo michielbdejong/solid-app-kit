@@ -60,6 +60,8 @@
     }
   },
   "dependencies": {
+    "@types/koa-static": "^4.0.1",
+    "@types/redis": "^2.8.17",
     "buffer-to-stream": "^1.0.0",
     "koa": "^2.11.0",
     "koa-404-handler": "0.0.2",

@@ -1,4 +1,4 @@
-import * as redis from "redis";
+import { RedisClient, createClient, Multi } from "redis";
 import { BlobTree, Path } from "wac-ldp";
 import { Blob } from "wac-ldp/src/lib/storage/Blob";
 import { Container, Member } from "wac-ldp/src/lib/storage/Container";
@@ -6,11 +6,41 @@ import { EventEmitter } from "events";
 import { promisify } from "util";
 import { streamToBuffer, bufferToStream } from "./streams";
 
+type PromisifiedRedisClient = {
+  select: (dbIndex: number) => Promise<void>;
+  flushdb: () => Promise<void>;
+  quit: () => Promise<void>;
+  watch: (key: string) => Promise<void>;
+  exists: (key: string) => Promise<number>;
+  get: (key: string) => Promise<string>;
+  set: (key: string, value: string) => Promise<string>;
+  hset: (key: string, field: string, value: string) => Promise<string>;
+  hgetall: (key: string) => Promise<{ [field: string]: string }>;
+  del: (key: string) => Promise<void>;
+  hdel: (key: string, field: string) => Promise<string>;
+  multi: () => PromisifiedRedisMulti;
+};
+
+type PromisifiedRedisMulti = {
+  select: () => Promise<void>;
+  flushdb: () => Promise<void>;
+  quit: () => Promise<void>;
+  watch: (key: string) => Promise<void>;
+  exists: (key: string) => Promise<number>;
+  get: (key: string) => Promise<string>;
+  set: (key: string, value: string) => Promise<string>;
+  hset: (key: string, field: string, value: string) => Promise<string>;
+  hgetall: (key: string) => Promise<{ [field: string]: string }>;
+  del: (key: string) => Promise<void>;
+  hdel: (key: string, field: string) => Promise<string>;
+  exec: () => Promise<void>;
+};
+
 class BlobRedis implements Blob {
   path: Path;
-  client: any;
+  client: PromisifiedRedisClient;
   watched: boolean;
-  constructor(path: Path, client: any) {
+  constructor(path: Path, client: PromisifiedRedisClient) {
     this.path = path;
     this.client = client;
     this.watched = false;
@@ -27,18 +57,21 @@ class BlobRedis implements Blob {
     const ret = await this.client.exists(this.path.toString());
     return ret === 1;
   }
-  async getData() {
+  async getData(): Promise<ReadableStream | undefined> {
     await this.checkWatch();
     const ret = await this.client.get(this.path.toString());
-    return bufferToStream(Buffer.from(ret));
+    console.log("redis ret is", ret);
+    if (ret) {
+      return bufferToStream(Buffer.from(ret));
+    }
   }
-  async setData(stream: ReadableStream) {
+  async setData(stream: ReadableStream): Promise<void> {
     await this.checkWatch(); // to support optimistic locking for setData-then-delete
     const value: Buffer = await streamToBuffer(stream);
 
     // this.client.set(this.path.toString(), value.toString())
 
-    const multi = this.client.multi();
+    const multi: PromisifiedRedisMulti = this.client.multi();
     // method calls on the multi object are synchronous
     // except for multi.exec, which is asynchronous again.
     multi.set(this.path.toString(), value.toString());
@@ -62,7 +95,7 @@ class BlobRedis implements Blob {
     // specifically the 'Optimistic locking using check-and-set' section.
     await multi.exec();
   }
-  async delete() {
+  async delete(): Promise<void> {
     await this.checkWatch(); // to support optimistic locking for delete-then-setData
     const multi = this.client.multi();
     // method calls on the multi object are synchronous
@@ -78,17 +111,19 @@ class BlobRedis implements Blob {
 
 class ContainerRedis implements Container {
   path: Path;
-  client: any;
-  constructor(path: Path, client: any) {
+  client: PromisifiedRedisClient;
+  constructor(path: Path, client: PromisifiedRedisClient) {
     this.path = path;
     this.client = client;
   }
-  async exists() {
+  async exists(): Promise<boolean> {
     const ret = await this.client.exists(this.path.toString());
     return ret === 1;
   }
-  async getMembers() {
-    const membersObj = await this.client.hgetall(this.path.toString());
+  async getMembers(): Promise<Member[]> {
+    const membersObj: { [field: string]: string } = await this.client.hgetall(
+      this.path.toString()
+    );
     const members = [];
     for (const k in membersObj) {
       members.push({
@@ -98,12 +133,12 @@ class ContainerRedis implements Container {
     }
     return members;
   }
-  delete() {
-    return this.client.del(this.path.toString());
+  async delete(): Promise<void> {
+    await this.client.del(this.path.toString());
   }
 }
 
-function promisifyRedisClient(callbacksClient: any) {
+function promisifyRedisMulti(callbacksClient: Multi): PromisifiedRedisMulti {
   return {
     select: callbacksClient.select.bind(callbacksClient),
     flushdb: callbacksClient.flushdb.bind(callbacksClient),
@@ -115,27 +150,50 @@ function promisifyRedisClient(callbacksClient: any) {
     exists: promisify(callbacksClient.exists).bind(callbacksClient),
     hgetall: promisify(callbacksClient.hgetall).bind(callbacksClient),
     hset: promisify(callbacksClient.hset).bind(callbacksClient),
+    hdel: promisify(callbacksClient.hdel).bind(callbacksClient),
     quit: promisify(callbacksClient.quit).bind(callbacksClient),
     watch: promisify(callbacksClient.watch).bind(callbacksClient),
-    multi: callbacksClient.multi.bind(callbacksClient),
     exec: promisify(callbacksClient.exec).bind(callbacksClient)
   };
 }
+function promisifyRedisClient(
+  callbacksClient: RedisClient
+): PromisifiedRedisClient {
+  return {
+    select: callbacksClient.select.bind(callbacksClient),
+    flushdb: callbacksClient.flushdb.bind(callbacksClient),
+    get: promisify(callbacksClient.get).bind(callbacksClient),
+    set: promisify(callbacksClient.set).bind(callbacksClient),
+    del: (promisify(callbacksClient.DEL).bind(callbacksClient) as unknown) as (
+      path: string
+    ) => Promise<void>,
+    exists: promisify(callbacksClient.exists).bind(callbacksClient),
+    hgetall: promisify(callbacksClient.hgetall).bind(callbacksClient),
+    hset: promisify(callbacksClient.hset).bind(callbacksClient),
+    hdel: promisify(callbacksClient.hdel).bind(callbacksClient),
+    quit: promisify(callbacksClient.quit).bind(callbacksClient),
+    watch: promisify(callbacksClient.watch).bind(callbacksClient),
+    multi: (): PromisifiedRedisMulti => {
+      const multi = callbacksClient.multi();
+      return promisifyRedisMulti(multi);
+    }
+  };
+}
 export class BlobTreeRedis extends EventEmitter implements BlobTree {
-  callbacksClient: any;
-  client: any;
+  callbacksClient: RedisClient;
+  client: PromisifiedRedisClient;
   constructor() {
     super();
-    this.callbacksClient = redis.createClient();
+    this.callbacksClient = createClient();
     this.client = promisifyRedisClient(this.callbacksClient);
   }
-  select(dbIndex: number) {
+  select(dbIndex: number): Promise<void> {
     return this.client.select(dbIndex);
   }
-  flushdb() {
+  flushdb(): Promise<void> {
     return this.client.flushdb();
   }
-  stop() {
+  stop(): Promise<void> {
     return this.client.quit();
   }
   getBlob(path: Path): Blob {
