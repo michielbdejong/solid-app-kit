@@ -135,10 +135,15 @@ export class Server {
 @prefix schema: <http://schema.org/>.
 @prefix pim: <http://www.w3.org/ns/pim/space#>.
 @prefix ldp: <http://www.w3.org/ns/ldp#>.
+@prefix acl: <http://www.w3.org/ns/auth/acl#>.
 <#me>
- a schema:Person;
- pim:storage <${podRoot}>;
- ldp:inbox <${podRoot}inbox/>.
+  a schema:Person;
+  pim:storage <${podRoot}>;
+  ldp:inbox <${podRoot}inbox/>;
+  acl:trustedApp <#same-origin>.
+<#same-origin>
+  acl:origin <${this.host}>;
+  acl:mode acl:Read, acl:Write, acl:Control.
 `
         );
 
