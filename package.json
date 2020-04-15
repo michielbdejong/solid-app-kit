@@ -19,7 +19,7 @@
     "postversion": "git push && git push --tags && npm publish",
     "prettier": "prettier --write \"{src,test,__mocks__}/**/*.ts\"",
     "preversion": "npm test",
-    "start": "node lib/cli public/",
+    "start": "NODE_EXTRA_CA_CERTS=myCA.pem DEBUG=* node lib/cli public/",
     "test": "npm run build && npm run lint && npm run jest",
     "version": "npm run build"
   },
@@ -72,6 +72,6 @@
     "path": "^0.12.7",
     "redis": "^3.0.2",
     "solid-idp": "^0.1.6-build2",
-    "wac-ldp": "^1.0.0"
+    "wac-ldp": "^1.1.0"
   }
 }
