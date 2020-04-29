@@ -1,6 +1,6 @@
 {
   "name": "solid-app-kit",
-  "version": "1.5.3",
+  "version": "1.6.0",
   "bin": {
     "solid-app-kit": "./lib/cli.js"
   },
