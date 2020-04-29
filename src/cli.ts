@@ -7,18 +7,31 @@ import Debug from "debug";
 const debug = Debug("Solid App Kit");
 
 const appFolder = process.argv[2];
-console.log(`Serving app from ${appFolder} on https://lolcathost.de/`);
 
 // on startup:
-const server = new Server({
-  httpsPort: 443,
-  httpsDomain: "lolcathost.de",
+const config = {
+  httpsDomain: undefined,
+  port: 8000,
+  https: false,
   cert: {
     key: readFileSync("server.key"),
     cert: readFileSync("server.cert")
   },
   appFolder, // statics path (your app goes here!)
   dbFolder: "../.db" // NSS-compatible user database
-});
+};
+if (process.env.HTTPS_DOMAIN) {
+  console.log(
+    `Serving app from ${appFolder} on https://${process.env.HTTPS_DOMAIN}/`
+  );
+  config.port = 443;
+  config.https = true;
+  config.httpsDomain = process.env.HTTPS_DOMAIN;
+}
+if (process.env.PORT) {
+  console.log(`Serving app from ${appFolder} on port ${process.env.PORT}`);
+  config.port = process.env.PORT;
+}
+const server = new Server(config);
 debug("listening...");
 server.listen().catch(console.error.bind(console));

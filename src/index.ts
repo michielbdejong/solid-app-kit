@@ -1,4 +1,8 @@
-import { createServer, Server as HttpsServer } from "https";
+import {
+  createServer as createServerHttps,
+  Server as HttpsServer
+} from "https";
+import { createServer as createServerHttp, Server as HttpServer } from "http";
 import { IncomingMessage, ServerResponse } from "http";
 import Debug from "debug";
 import { BlobTree, WacLdp } from "wac-ldp";
@@ -16,7 +20,8 @@ import path from "path";
 const debug = Debug("server");
 
 export type ConstructorOptions = {
-  httpsPort?: number;
+  https: boolean;
+  port: number;
   httpsDomain: string;
   cert: {
     key: Buffer;
@@ -29,7 +34,7 @@ export type ConstructorOptions = {
 export class Server {
   storage: BlobTree;
   wacLdp: WacLdp;
-  server: HttpsServer;
+  server: HttpsServer | HttpServer;
   hub: Hub;
   wsServer: WebSocketServer;
   idpHandler?: (req: IncomingMessage, res: ServerResponse) => void;
@@ -39,9 +44,10 @@ export class Server {
   constructor(options: ConstructorOptions) {
     this.options = options;
     this.storage = new BlobTreeRedis(); // singleton in-memory storage
-    let portSuffix = ""; // default to port 443
-    if (options.httpsPort && options.httpsPort !== 443) {
-      portSuffix = `:${options.httpsPort}`;
+    let portSuffix = ""; // default to port 443 / 80
+    const defaultPort = options.https ? 443 : 80;
+    if (options.port !== defaultPort) {
+      portSuffix = `:${options.port}`;
     }
     this.host = `https://${options.httpsDomain}${portSuffix}`;
     const webSocketUrl = new URL(`wss://${options.httpsDomain}${portSuffix}/`);
@@ -62,26 +68,29 @@ export class Server {
       }
     });
     this.staticsHandler = staticsApp.callback();
-
-    this.server = createServer(
-      options.cert,
-      (req: IncomingMessage, res: ServerResponse) => {
-        if (req.url.startsWith("/storage")) {
-          return this.wacLdp.handler(req, res);
-        }
-        if (
-          req.url.startsWith("/.well-known") ||
-          req.url.startsWith("/certs") ||
-          req.url.startsWith("/reg") ||
-          req.url.startsWith("/auth") ||
-          req.url.startsWith("/interaction") ||
-          req.url.startsWith("/resetpassword")
-        ) {
-          return this.idpHandler(req, res);
-        }
-        return this.staticsHandler(req, res);
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    const handler = (req: IncomingMessage, res: ServerResponse) => {
+      if (req.url.startsWith("/storage")) {
+        return this.wacLdp.handler(req, res);
       }
-    );
+      if (
+        req.url.startsWith("/.well-known") ||
+        req.url.startsWith("/certs") ||
+        req.url.startsWith("/reg") ||
+        req.url.startsWith("/auth") ||
+        req.url.startsWith("/interaction") ||
+        req.url.startsWith("/resetpassword")
+      ) {
+        return this.idpHandler(req, res);
+      }
+      return this.staticsHandler(req, res);
+    };
+    if (options.https) {
+      this.server = createServerHttps(options.cert, handler);
+    } else {
+      this.server = createServerHttp(handler);
+    }
+
     this.wsServer = new WebSocketServer({
       server: this.server
     });
@@ -182,12 +191,12 @@ export class Server {
     idpApp.use(idpRouter.allowedMethods());
     this.idpHandler = idpApp.callback();
 
-    this.server.listen(this.options.httpsPort);
-    debug("listening on port", this.options.httpsPort);
+    this.server.listen(this.options.port);
+    debug("listening on port", this.options.port);
   }
   async close(): Promise<void> {
     this.server.close();
     this.wsServer.close();
-    debug("closing port", this.options.httpsPort);
+    debug("closing port", this.options.port);
   }
 }
