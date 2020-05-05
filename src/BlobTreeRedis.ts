@@ -5,6 +5,9 @@ import { Container, Member } from "wac-ldp/src/lib/storage/Container";
 import { EventEmitter } from "events";
 import { promisify } from "util";
 import { streamToBuffer, bufferToStream } from "./streams";
+import Debug from "debug";
+
+const debug = Debug("BlobTreeRedis");
 
 type PromisifiedRedisClient = {
   select: (dbIndex: number) => Promise<void>;
@@ -185,6 +188,7 @@ export class BlobTreeRedis extends EventEmitter implements BlobTree {
   client: PromisifiedRedisClient;
   constructor(redisUrl?: string) {
     super();
+    debug("Creating redis client", redisUrl);
     this.callbacksClient = createClient(redisUrl);
     this.client = promisifyRedisClient(this.callbacksClient);
   }

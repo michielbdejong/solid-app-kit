@@ -39,6 +39,7 @@ if (process.env.PORT) {
   console.log(`Serving app from ${appFolder} on port ${process.env.PORT}`);
   config.port = parseInt(process.env.PORT);
 }
+debug("Starting", config);
 const server = new Server(config);
 debug("listening...");
 server.listen().catch(console.error.bind(console));
