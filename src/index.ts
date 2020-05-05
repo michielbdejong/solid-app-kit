@@ -29,6 +29,7 @@ export type ConstructorOptions = {
   };
   appFolder: string;
   dbFolder: string;
+  redisUrl?: string;
 };
 
 export class Server {
@@ -43,7 +44,7 @@ export class Server {
   host: string;
   constructor(options: ConstructorOptions) {
     this.options = options;
-    this.storage = new BlobTreeRedis(); // singleton in-memory storage
+    this.storage = new BlobTreeRedis(options.redisUrl); // singleton in-memory storage
     let portSuffix = ""; // default to port 443 / 80
     const defaultPort = options.https ? 443 : 80;
     if (options.port !== defaultPort) {

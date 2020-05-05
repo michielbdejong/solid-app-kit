@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { Server } from ".";
+import { Server, ConstructorOptions } from ".";
 import { readFileSync } from "fs";
 import Debug from "debug";
 
@@ -9,7 +9,7 @@ const debug = Debug("Solid App Kit");
 const appFolder = process.argv[2];
 
 // on startup:
-const config = {
+const config: ConstructorOptions = {
   httpsDomain: undefined,
   port: 8000,
   https: false,
@@ -18,7 +18,8 @@ const config = {
     cert: readFileSync("server.cert")
   },
   appFolder, // statics path (your app goes here!)
-  dbFolder: "../.db" // NSS-compatible user database
+  dbFolder: "../.db", // NSS-compatible user database
+  redisUrl: process.env.REDIS_URL
 };
 if (process.env.HTTPS_DOMAIN) {
   console.log(
@@ -30,7 +31,7 @@ if (process.env.HTTPS_DOMAIN) {
 }
 if (process.env.PORT) {
   console.log(`Serving app from ${appFolder} on port ${process.env.PORT}`);
-  config.port = process.env.PORT;
+  config.port = parseInt(process.env.PORT);
 }
 const server = new Server(config);
 debug("listening...");
