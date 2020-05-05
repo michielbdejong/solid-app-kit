@@ -8,21 +8,29 @@ const debug = Debug("Solid App Kit");
 
 const appFolder = process.argv[2];
 
+function getInt(str: string): number | undefined {
+  const candidate: number = parseInt(str);
+  if (isNaN(candidate)) {
+    return undefined;
+  }
+  return candidate;
+}
+
 // on startup:
 const config: ConstructorOptions = {
-  domain: process.env.DOMAIN,
-  port: 8000,
-  https: false,
+  https: !!process.env.HTTPS,
+  portListen: getInt(process.env.PORT),
+  domain: process.env.DOMAIN || "localhost",
+  publicPortSuffix: process.env.PUBLIC_PORT_SUFFIX || "",
+  publicProtocolSuffix: process.env.PUBLIC_PROTOCOL_SUFFIX || "",
   cert: undefined,
   appFolder, // statics path (your app goes here!)
   dbFolder: "../.db", // NSS-compatible user database
   redisUrl: process.env.REDIS_URL
 };
 
-if (process.env.HTTPS) {
-  console.log(
-    `Serving app from ${appFolder} on https://${process.env.DOMAIN}/`
-  );
+if (config.https) {
+  console.log(`Running with https`);
   try {
     config.cert = {
       key: readFileSync("server.key"),
@@ -31,13 +39,10 @@ if (process.env.HTTPS) {
   } catch (e) {
     throw new Error("Could not load ./server.key and ./server.cert");
   }
-  config.port = 443;
-  config.https = true;
+} else {
+  console.log(`Not running with https`);
 }
-if (process.env.PORT) {
-  console.log(`Serving app from ${appFolder} on port ${process.env.PORT}`);
-  config.port = parseInt(process.env.PORT);
-}
+
 debug("Starting", config);
 const server = new Server(config);
 debug("listening...");

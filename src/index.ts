@@ -21,7 +21,9 @@ const debug = Debug("server");
 
 export type ConstructorOptions = {
   https: boolean;
-  port: number;
+  portListen: number;
+  publicPortSuffix: string;
+  publicProtocolSuffix: string;
   domain: string;
   cert: {
     key: Buffer;
@@ -45,13 +47,10 @@ export class Server {
   constructor(options: ConstructorOptions) {
     this.options = options;
     this.storage = new BlobTreeRedis(options.redisUrl); // singleton in-memory storage
-    let portSuffix = ""; // default to port 443 / 80
-    const defaultPort = options.https ? 443 : 80;
-    if (options.port !== defaultPort) {
-      portSuffix = `:${options.port}`;
-    }
-    this.host = `https://${options.domain}${portSuffix}`;
-    const webSocketUrl = new URL(`wss://${options.domain}${portSuffix}/`);
+    this.host = `http${options.publicProtocolSuffix}://${options.domain}${options.publicPortSuffix}`;
+    const webSocketUrl = new URL(
+      `ws${options.publicProtocolSuffix}://${options.domain}${options.publicPortSuffix}/`
+    );
     const skipWac = false;
     this.wacLdp = new WacLdp(
       this.storage,
@@ -192,12 +191,12 @@ export class Server {
     idpApp.use(idpRouter.allowedMethods());
     this.idpHandler = idpApp.callback();
 
-    this.server.listen(this.options.port);
-    debug("listening on port", this.options.port);
+    this.server.listen(this.options.portListen);
+    debug("listening on port", this.options.portListen);
   }
   async close(): Promise<void> {
     this.server.close();
     this.wsServer.close();
-    debug("closing port", this.options.port);
+    debug("closing port", this.options.portListen);
   }
 }
