@@ -182,7 +182,7 @@ export class Server {
       },
       storagePreset: "redis", // or "filesystem",
       storageData: {
-        redisUrl: "", // used if storagePreset is "redis"
+        redisUrl: this.options.redisUrl, // used if storagePreset is "redis"
         folder: path.join(__dirname, this.options.dbFolder) // used if storagePreset is "filesystem"
       }
     });
