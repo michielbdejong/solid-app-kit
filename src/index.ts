@@ -22,7 +22,7 @@ const debug = Debug("server");
 export type ConstructorOptions = {
   https: boolean;
   port: number;
-  httpsDomain: string;
+  domain: string;
   cert: {
     key: Buffer;
     cert: Buffer;
@@ -50,8 +50,8 @@ export class Server {
     if (options.port !== defaultPort) {
       portSuffix = `:${options.port}`;
     }
-    this.host = `https://${options.httpsDomain}${portSuffix}`;
-    const webSocketUrl = new URL(`wss://${options.httpsDomain}${portSuffix}/`);
+    this.host = `https://${options.domain}${portSuffix}`;
+    const webSocketUrl = new URL(`wss://${options.domain}${portSuffix}/`);
     const skipWac = false;
     this.wacLdp = new WacLdp(
       this.storage,

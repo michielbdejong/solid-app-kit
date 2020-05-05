@@ -10,7 +10,7 @@ const appFolder = process.argv[2];
 
 // on startup:
 const config: ConstructorOptions = {
-  httpsDomain: undefined,
+  domain: process.env.DOMAIN,
   port: 8000,
   https: false,
   cert: undefined,
@@ -19,9 +19,9 @@ const config: ConstructorOptions = {
   redisUrl: process.env.REDIS_URL
 };
 
-if (process.env.HTTPS_DOMAIN) {
+if (process.env.HTTPS) {
   console.log(
-    `Serving app from ${appFolder} on https://${process.env.HTTPS_DOMAIN}/`
+    `Serving app from ${appFolder} on https://${process.env.DOMAIN}/`
   );
   try {
     config.cert = {
@@ -33,7 +33,6 @@ if (process.env.HTTPS_DOMAIN) {
   }
   config.port = 443;
   config.https = true;
-  config.httpsDomain = process.env.HTTPS_DOMAIN;
 }
 if (process.env.PORT) {
   console.log(`Serving app from ${appFolder} on port ${process.env.PORT}`);
