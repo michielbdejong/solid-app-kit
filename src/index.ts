@@ -145,9 +145,18 @@ export class Server {
 @prefix pim: <http://www.w3.org/ns/pim/space#>.
 @prefix ldp: <http://www.w3.org/ns/ldp#>.
 @prefix acl: <http://www.w3.org/ns/auth/acl#>.
+@prefix foaf: <http://xmlns.com/foaf/0.1/>.
+@prefix solid: <http://www.w3.org/ns/solid/terms#>.
+
+<.> foaf:primaryTopic <#me>.
+
 <#me>
-  a schema:Person;
+  a schema:Person, foaf:Person;
   pim:storage <${podRoot}>;
+  solid:account <${podRoot}>;
+  pim:preferencesFile <${podRoot}settings/prefs.ttl>;
+  solid:privateTypeIndex <${podRoot}settings/privateTypeIndex.ttl>;
+  solid:publicTypeIndex <${podRoot}settings/publicTypeIndex.ttl>;
   ldp:inbox <${podRoot}inbox/>;
   acl:trustedApp <#same-origin>.
 <#same-origin>
