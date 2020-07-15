@@ -12,6 +12,7 @@
   "main": "src/index.ts",
   "scripts": {
     "build": "babel src -d lib --source-maps --extensions \".ts\"",
+    "gen-cert": "openssl req -new -x509 -days 365 -nodes -out ./server.cert -keyout ./server.key -subj \"/C=RO/ST=Bucharest/L=Bucharest/O=IT/CN=www.example.ro\"",
     "coverage": "jest --collect-coverage",
     "dev": "ts-node-dev src/cli public/",
     "jest": "jest",
@@ -19,8 +20,8 @@
     "postversion": "git push && git push --tags && npm publish",
     "prettier": "prettier --write \"{src,test,__mocks__}/**/*.ts\"",
     "preversion": "npm test",
-    "start": "DEBUG=* node lib/cli public/",
-    "start-local-https": "NODE_EXTRA_CA_CERTS=myCA.pem DEBUG=* HTTPS_DOMAIN=lolcathost.de node lib/cli public/",
+    "start": "DEBUG=* HTTPS=true PUBLIC_PROTOCOL_SUFFIX=s PUBLIC_PORT_SUFFIX=:8443 PORT=8443 node lib/cli public/",
+    "start-local-https": "NODE_EXTRA_CA_CERTS=myCA.pem DEBUG=* HTTPS=true PUBLIC_PROTOCOL_SUFFIX=s DOMAIN=lolcathost.de node lib/cli public/",
     "test": "npm run build && npm run lint && npm run jest",
     "version": "npm run build"
   },
