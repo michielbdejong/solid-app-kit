@@ -22,7 +22,7 @@ export const keystore = {
       qi:
         "E3W6OfqeAzVCvylUpavcaBQhBRMEvnargBUSD8LT0smIldDm0SuTZ2fzueTfynd-9tvb9Ny_Tr9uSS-yWDHulnPfQL7LOdI1TWAXEy4278FJZwGCElSvjJafK_KS36sTw614YOV0UitWCd21aMWkKlJboh3kzEZEehFNAz2Iq-M",
       // eslint-disable-next-line @typescript-eslint/camelcase
-      key_ops: ["verify"]
-    }
-  ]
+      key_ops: ["verify"],
+    },
+  ],
 };

@@ -26,7 +26,7 @@ const config: ConstructorOptions = {
   cert: undefined,
   appFolder, // statics path (your app goes here!)
   dbFolder: "../.db", // NSS-compatible user database
-  redisUrl: process.env.REDIS_URL
+  redisUrl: process.env.REDIS_URL,
 };
 
 if (config.https) {
@@ -34,7 +34,7 @@ if (config.https) {
   try {
     config.cert = {
       key: readFileSync(process.env.TLS_KEY || "server.key"),
-      cert: readFileSync(process.env.TLS_CERT || "server.cert")
+      cert: readFileSync(process.env.TLS_CERT || "server.cert"),
     };
   } catch (e) {
     throw new Error("Could not load ./server.key and ./server.cert");

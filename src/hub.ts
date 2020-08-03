@@ -6,7 +6,7 @@ import {
   WacLdp,
   determineWebIdAndOrigin,
   ACL,
-  BEARER_PARAM_NAME
+  BEARER_PARAM_NAME,
 } from "wac-ldp";
 
 const debug = Debug("hub");
@@ -52,10 +52,10 @@ export class Hub {
       webSocket: ws,
       webIdPromise: this.getWebId(upgradeRequest),
       origin: getOrigin(upgradeRequest.headers),
-      subscriptions: []
+      subscriptions: [],
     } as Client;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (ws as any).on("message", function(message: string): void {
+    (ws as any).on("message", function (message: string): void {
       debug("received: %s", message);
       if (
         message.substring(0, SUBSCRIBE_COMMAND_PREFIX.length) ===
@@ -142,9 +142,9 @@ export class Hub {
 
   publishChange(url: URL): void {
     debug("publishChange", url);
-    this.clients.map(async client => {
+    this.clients.map(async (client) => {
       debug("publishChange client", url, client.subscriptions);
-      client.subscriptions.map(async subscription => {
+      client.subscriptions.map(async (subscription) => {
         debug(
           "hasPrefix",
           url.toString(),

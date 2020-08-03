@@ -132,7 +132,7 @@ class ContainerRedis implements Container {
       const relPath = absPath.substring(prefixLength);
       members.push({
         name: relPath,
-        isContainer: membersObj[absPath] === "true"
+        isContainer: membersObj[absPath] === "true",
       } as Member);
     }
     return members;
@@ -157,7 +157,7 @@ function promisifyRedisMulti(callbacksClient: Multi): PromisifiedRedisMulti {
     hdel: promisify(callbacksClient.hdel).bind(callbacksClient),
     quit: promisify(callbacksClient.quit).bind(callbacksClient),
     watch: promisify(callbacksClient.watch).bind(callbacksClient),
-    exec: promisify(callbacksClient.exec).bind(callbacksClient)
+    exec: promisify(callbacksClient.exec).bind(callbacksClient),
   };
 }
 function promisifyRedisClient(
@@ -180,7 +180,7 @@ function promisifyRedisClient(
     multi: (): PromisifiedRedisMulti => {
       const multi = callbacksClient.multi();
       return promisifyRedisMulti(multi);
-    }
+    },
   };
 }
 export class BlobTreeRedis extends EventEmitter implements BlobTree {

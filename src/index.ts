@@ -1,6 +1,6 @@
 import {
   createServer as createServerHttps,
-  Server as HttpsServer
+  Server as HttpsServer,
 } from "https";
 import { createServer as createServerHttp, Server as HttpServer } from "http";
 import { IncomingMessage, ServerResponse } from "http";
@@ -62,7 +62,7 @@ export class Server {
     );
     const staticsApp = new Koa();
     staticsApp.use(koaStatic(options.appFolder, {}));
-    staticsApp.use(async ctx => {
+    staticsApp.use(async (ctx) => {
       if (ctx.status === 404) {
         await koaSend(ctx, "index.html", { root: options.appFolder });
       }
@@ -92,7 +92,7 @@ export class Server {
     }
 
     this.wsServer = new WebSocketServer({
-      server: this.server
+      server: this.server,
     });
     this.hub = new Hub(this.wacLdp, `${this.host}/`);
     this.wsServer.on("connection", this.hub.handleConnection.bind(this.hub));
@@ -121,8 +121,8 @@ export class Server {
               service: "gmail",
               auth: {
                 user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS
-              }
+                pass: process.env.EMAIL_PASS,
+              },
             }
           : undefined,
       webIdFromUsername: async (username: string): Promise<string> => {
@@ -192,8 +192,8 @@ export class Server {
       storagePreset: "redis", // or "filesystem",
       storageData: {
         redisUrl: this.options.redisUrl, // used if storagePreset is "redis"
-        folder: path.join(__dirname, this.options.dbFolder) // used if storagePreset is "filesystem"
-      }
+        folder: path.join(__dirname, this.options.dbFolder), // used if storagePreset is "filesystem"
+      },
     });
     const idpApp = new Koa();
     idpApp.use(idpRouter.routes());
