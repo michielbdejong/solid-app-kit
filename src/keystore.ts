@@ -21,7 +21,6 @@ export const keystore = {
         "ICtZ3QXhtWEGXwbHbF_V85PWAte5SHfBdU9MTOItGrW1pkHF7M8v23VR92k4sQw4eZLfwRgXhZg0ISZ2xSwd4gkVViLT42FCAbOSLEwOVrgxJb48zLuzi-_jeBwYM8IECzjEf8CjwCdYFSBjfevfNQazhKqhKHt7cPlzpAmH3oU",
       qi:
         "E3W6OfqeAzVCvylUpavcaBQhBRMEvnargBUSD8LT0smIldDm0SuTZ2fzueTfynd-9tvb9Ny_Tr9uSS-yWDHulnPfQL7LOdI1TWAXEy4278FJZwGCElSvjJafK_KS36sTw614YOV0UitWCd21aMWkKlJboh3kzEZEehFNAz2Iq-M",
-      // eslint-disable-next-line @typescript-eslint/camelcase
       key_ops: ["verify"],
     },
   ],
