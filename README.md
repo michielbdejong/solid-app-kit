@@ -9,8 +9,12 @@ for an example.
 
 Previously there were several ways to test https-based systems on localhost,
 but in the last few years, browsers have tightened that up a lot, meaning you
-want to steer clear of using 'localhost' or '127.0.0.1' as the hostname. You
-can use a domain name which you point to 127.0.0.1 in your /etc/hosts. I
+want to steer clear of using 'localhost' or '127.0.0.1' as the hostname.
+Even if you use something like `chrome://flags/#allow-insecure-localhost` to make
+https://localhost work in your browser, the Solid IDP that's built into Solid App Kit
+would reject its own localhost domain name as a redirect URI.
+
+So instead, you can use a domain name which you point to 127.0.0.1 in your /etc/hosts. I
 personally like to use https://lolcathost.de/ which is a domain name that exists
 but is pointed to 127.0.0.1 in DNS. Long story short, you'll need to generate
 a CA root certificate, and import it into your browser, then sign a cert for the
@@ -21,7 +25,7 @@ for more info on that. Once you've done that, you can:
 ```sh
 npm install
 npm run build
-NODE_EXTRA_CA_CERTS=myCA.pem DEBUG=* node lib/cli public/
+npm start
 ```
 
 and visit https://lolcathost.de/ (or whichever domain name you chose) to view the app.
