@@ -33,8 +33,8 @@ if (config.https) {
   console.log(`Running with https`);
   try {
     config.cert = {
-      key: readFileSync("server.key"),
-      cert: readFileSync("server.cert")
+      key: readFileSync(process.env.TLS_KEY || "server.key"),
+      cert: readFileSync(process.env.TLS_CERT || "server.cert")
     };
   } catch (e) {
     throw new Error("Could not load ./server.key and ./server.cert");

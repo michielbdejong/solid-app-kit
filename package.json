@@ -20,8 +20,8 @@
     "postversion": "git push && git push --tags && npm publish",
     "prettier": "prettier --write \"{src,test,__mocks__}/**/*.ts\"",
     "preversion": "npm test",
-    "start": "DEBUG=* HTTPS=true PUBLIC_PROTOCOL_SUFFIX=s PUBLIC_PORT_SUFFIX=:8443 PORT=8443 node lib/cli public/",
-    "start-local-https": "NODE_EXTRA_CA_CERTS=myCA.pem DEBUG=* HTTPS=true PUBLIC_PROTOCOL_SUFFIX=s DOMAIN=lolcathost.de node lib/cli public/",
+    "start-8443": "DEBUG=* HTTPS=true PUBLIC_PROTOCOL_SUFFIX=s PUBLIC_PORT_SUFFIX=:8443 PORT=8443 node lib/cli public/",
+    "start": "NODE_EXTRA_CA_CERTS=myCA.pem DEBUG=* HTTPS=true PORT=443 PUBLIC_PROTOCOL_SUFFIX=s DOMAIN=lolcathost.de TLS_CERT=lolcathost.de.crt TLS_KEY=lolcathost.de.key node lib/cli public/",
     "test": "npm run build && npm run lint && npm run jest",
     "version": "npm run build"
   },
